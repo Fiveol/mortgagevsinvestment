@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mortgage vs Invest</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+            max-width: 800px;
+        }
+
+        label {
+            display: block;
+            margin-top: 8px;
+        }
+
+        input {
+            width: 160px;
+            padding: 4px;
+        }
+
+        canvas {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Mortgage vs Invest</h2>
+
+    <label>Mortgage balance ($): <input id="mortBal" type="number" value="300000"></label>
+    <label>Rate %: <input id="mortRate" type="number" value="4" step="0.01"></label>
+    <label>Years left: <input id="mortYears" type="number" value="25"></label>
+    <label>Extra monthly ($): <input id="extra" type="number" value="500"></label>
+
+    <label>Invest return %: <input id="invRate" type="number" value="7" step="0.01"></label>
+    <label>Horizon (years): <input id="horizon" type="number" value="10"></label>
+
+    <button onclick="run()">Run</button>
+
+    <canvas id="mortChart"></canvas>
+    <canvas id="invChart"></canvas>
+
+    <script>
+        function monthlyPayment(P, r, y) {
+            r = r / 100 / 12;
+            let n = y * 12;
+            return P * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        }
+
+        function simulateMortgage(P, r, y, extra, horizon) {
+            r = r / 100 / 12;
+            let pay = monthlyPayment(P, r * 12 * 100, y);
+            let months = horizon * 12;
+            let arr = [];
+            for (let i = 0; i < months; i++) {
+                let interest = P * r;
+                let princ = pay + extra - interest;
+                if (princ > P) princ = P;
+                P -= princ;
+                if (P < 0) P = 0;
+                arr.push(P);
+            }
+            return arr;
+        }
+
+        function simulateInvest(extra, r, horizon) {
+            r = r / 100 / 12;
+            let months = horizon * 12;
+            let arr = [];
+            let val = 0;
+            for (let i = 0; i < months; i++) {
+                val = val * (1 + r) + extra;
+                arr.push(val);
+            }
+            return arr;
+        }
+
+        let mortChart, invChart;
+
+        function run() {
+            let P = +document.getElementById("mortBal").value;
+            let r = +document.getElementById("mortRate").value;
+            let y = +document.getElementById("mortYears").value;
+            let extra = +document.getElementById("extra").value;
+            let ir = +document.getElementById("invRate").value;
+            let h = +document.getElementById("horizon").value;
+
+            let mortA = simulateMortgage(P, r, y, extra, h);
+            let mortB = simulateMortgage(P, r, y, 0, h);
+            let inv = simulateInvest(extra, ir, h);
+
+            let labels = mortA.map((_, i) => i + 1);
+
+            if (mortChart) mortChart.destroy();
+            if (invChart) invChart.destroy();
+
+            mortChart = new Chart(document.getElementById("mortChart"), {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [
+                        { label: "Mortgage w/ extra", data: mortA, borderColor: "green" },
+                        { label: "Mortgage no extra", data: mortB, borderColor: "red" }
+                    ]
+                }
+            });
+
+            invChart = new Chart(document.getElementById("invChart"), {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [
+                        { label: "Investment value", data: inv, borderColor: "blue" }
+                    ]
+                }
+            });
+        }
+    </script>
+
+</body>
+
+</html>
